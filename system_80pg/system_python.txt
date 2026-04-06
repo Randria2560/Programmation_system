@@ -1,0 +1,1157 @@
+import os
+import sys
+
+pid = os.fork()
+
+if pid == -1:
+    print("Erreur lors de la création de processus", file=sys.stderr)
+    sys.exit(1)
+elif pid == 0:
+    print(f"Je suis dans le fils: moi={os.getpid()},père={os.getppid()}")
+else:
+    print(f"Je suis le père: fils:{pid},moi:{os.getpid()},mon_père:{os.getppid()}")
+
+
+//=================2.2============================
+import os
+import sys
+
+def main():
+    fils1 = os.fork()
+    if fils1 == -1:
+        print("Erreur lors de la création d'un des processus", file=sys.stderr)
+        sys.exit(1)
+
+    if fils1 == 0:
+        print(f"Je suis dans le fils1 : moi={os.getpid()},père={os.getppid()}")
+    else:
+        fils2 = os.fork()
+        if fils2 == 0:
+            print(f"Je suis dans le fils2 : moi={os.getpid()},père={os.getppid()}")
+        else:
+            print(f"Je suis le père: fils1:{fils1},fils2={fils2},moi:{os.getpid()},mon_père:{os.getppid()}")
+
+if __name__ == "__main__":
+    main()
+
+
+
+//================2.3=========================
+import os
+import sys
+
+def main():
+    fils = [None] * 6
+
+    for i in range(1, 6):
+        fils[i] = os.fork()
+
+        if fils[i] == -1:
+            print(f"Error creating process: {os.strerror(os.errno)}", file=sys.stderr)
+            sys.exit(1)
+
+        if fils[i] == 0:
+            print(f"I am in fils[{i}] : me={os.getpid()}, father={os.getppid()}")
+            break
+
+if __name__ == "__main__":
+    main()
+
+
+//==========2.4============
+import os
+import sys
+
+i = 0
+
+def main():
+    global i
+    for i in range(1, 6):
+        fils = os.fork()
+
+        if fils == -1:
+            print("Erreur lors de la création d'un des processus", file=sys.stderr)
+            sys.exit(1)
+
+        if fils == 0:  # I am in the child
+            print(f"Je suis dans le fils{i}: moi={os.getpid()},père={os.getppid()}")
+            break
+
+if __name__ == "__main__":
+    main()
+
+
+//========2.5===================
+import os
+import sys
+import time
+import random
+
+def main():
+
+    # ① Durées aléatoires entre 1 et 10 secondes
+    duree1 = random.randint(1, 10)
+    duree2 = random.randint(1, 10)
+
+    print("=== Démarrage ===")
+    print(f"Fils 1 va dormir {duree1} secondes")
+    print(f"Fils 2 va dormir {duree2} secondes")
+    print(f"Le plus long est le fils "
+          f"{'1' if duree1 > duree2 else '2'} "
+          f"({max(duree1, duree2)} secondes)\n")
+
+    # ② Mémoriser le temps de départ
+    debut = time.time()
+
+    # ③ Créer fils 1
+    pid1 = os.fork()
+    if pid1 == -1:
+        print("Erreur fork fils 1")
+        sys.exit(1)
+
+    if pid1 == 0:
+        # ── FILS 1 ──────
+        print(f"[Fils 1] démarre (PID = {os.getpid()})")
+        time.sleep(duree1)
+        print(f"[Fils 1] terminé après {duree1} secondes")
+        sys.exit(0)
+
+    # ④ Créer fils 2
+    pid2 = os.fork()
+    if pid2 == -1:
+        print("Erreur fork fils 2")
+        sys.exit(1)
+
+    if pid2 == 0:
+        # ── FILS 2 ─
+        print(f"[Fils 2] démarre (PID = {os.getpid()})")
+        time.sleep(duree2)
+        print(f"[Fils 2] terminé après {duree2} secondes")
+        sys.exit(0)
+
+    # ── PÈRE ──
+
+    # ⑤ Attendre les deux fils
+    for i in range(2):
+        pid_termine, _ = os.wait()
+
+        if pid_termine == pid1:
+            print("[Père] fils 1 terminé")
+        elif pid_termine == pid2:
+            print("[Père] fils 2 terminé")
+
+    # ⑥ Calculer la durée totale
+    fin           = time.time()
+    duree_totale  = fin - debut
+
+    print("\n=== Résultat ===")
+    print(f"Durée totale   : {duree_totale:.1f} secondes")
+    print(f"Plus long fils : {max(duree1, duree2)} secondes")
+
+if __name__ == "__main__":
+    main()
+
+
+//===============3.1=============================
+import sys
+
+def main():
+    sum = 0
+    if len(sys.argv) != 3:
+        print("Pas d'argument correct", file=sys.stderr)
+        sys.exit(1)
+    else:
+        for j in range(len(sys.argv) - 1):
+            sum += int(sys.argv[j + 1])
+        print(f"La somme est: {sum}")
+
+if __name__ == "__main__":
+    main()
+
+//=============3.2====================
+import os
+import subprocess
+import sys
+
+def main():
+    home = os.environ.get("HOME")
+    if home is None:
+        return 1
+
+    nouveau_repertoire = os.path.join(home, "nouveau_repertoire")
+
+    subprocess.run(["mkdir", nouveau_repertoire])
+
+    os.execv("/usr/bin/cp", ["cp", "-r", ".", nouveau_repertoire])
+
+    print("Erreur execv", file=sys.stderr)
+    return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+//=======3.3=========================
+import os
+import sys
+
+def main():
+    fichier = input("Entrer le nom du repertoire: ")
+    try:
+        os.execl("/usr/bin/vim", "vim", fichier)
+    except OSError as e:
+        print(f"Erreur execv: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+
+//======3.4========================
+import os
+import sys
+import shutil
+import errno
+
+def main():
+
+    while True:
+        # ① Saisir le nom du répertoire destination
+        destination = input("\nEntrez le nom du répertoire "
+                           "(ou 'q' pour quitter) : ").strip()
+
+        # ② Vérifier si l'utilisateur veut quitter
+        if destination == "q":
+            break
+
+        # ③ Vérifier que le nom n'est pas vide
+        if not destination:
+            print("Nom vide, veuillez recommencer.")
+            continue
+
+        # ④ Créer le répertoire destination
+        try:
+            os.mkdir(destination, 0o755)
+            print(f"Répertoire '{destination}' créé.")
+        except FileExistsError:
+            print(f"Répertoire '{destination}' existe déjà.")
+        except OSError as e:
+            print(f"Erreur mkdir : {e}")
+            continue
+
+        # ⑤ Créer un fils pour effectuer la copie
+        pid = os.fork()
+
+        if pid == -1:
+            print("Erreur fork")
+            continue
+
+        if pid == 0:
+            # ── FILS : copier le répertoire courant 
+            try:
+                # Copier tout le répertoire courant vers destination
+                source = os.getcwd()
+                for item in os.listdir(source):
+                    # Ne pas copier le dossier destination dans lui-même
+                    if item == destination:
+                        continue
+                    src  = os.path.join(source, item)
+                    dest = os.path.join(destination, item)
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dest)
+                    else:
+                        shutil.copy2(src, dest)
+                sys.exit(0)   # succès
+
+            except Exception as e:
+                print(f"Erreur copie : {e}")
+                sys.exit(1)   # échec
+
+        else:
+            # ── PÈRE : attendre la fin de la copie ──
+            pid_termine, status = os.waitpid(pid, 0)
+
+            # Vérifier si le fils s'est terminé normalement
+            if os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0:
+                print(f"Copie vers '{destination}' terminée.")
+            else:
+                print(f"Erreur lors de la copie vers '{destination}'.")
+
+    print("\nFin du programme.")
+
+if __name__ == "__main__":
+    main()
+
+//==========3.5===============
+import os
+import sys
+
+def main():
+
+    while True:
+        # ① Saisir le nom du fichier
+        nom_fichier = input("\nEntrez le nom du fichier à ouvrir "
+                           "(ou 'q' pour quitter) : ").strip()
+
+        # ② Condition de sortie
+        if nom_fichier == "q":
+            break
+
+        # ③ Vérifier que le nom n'est pas vide
+        if not nom_fichier:
+            print("Nom vide, veuillez recommencer.")
+            continue
+
+        # ④ Créer un fils pour lancer vim
+        pid = os.fork()
+
+        if pid == -1:
+            print("Erreur fork")
+            sys.exit(1)
+
+        if pid == 0:
+            # ── FILS : lancer vim
+            os.execl("/usr/bin/vim", "vim", nom_fichier)
+
+            # Atteint seulement si execl échoue
+            print("Erreur lors de l'ouverture de vim")
+            sys.exit(1)
+
+        else:
+            # ── PÈRE : attendre la fermeture de vim
+            pid_termine, status = os.waitpid(pid, 0)
+
+            if os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0:
+                print("Fermeture de vim détectée. "
+                      "Prêt pour un nouveau fichier.")
+            else:
+                print("vim s'est terminé avec une erreur.")
+
+    print("\nFin du programme.")
+
+if __name__ == "__main__":
+    main()
+
+//=================3.6======================
+
+
+
+//=================4.1=====================
+import os
+import sys
+
+BUFFER_SIZE = 256
+
+def main():
+    tube1_r, tube1_w = os.pipe()
+    tube2_r, tube2_w = os.pipe()
+
+    fils = os.fork()
+
+    if fils == -1:
+        print("fork error", file=sys.stderr)
+        sys.exit(1)
+
+    if fils == 0:
+        os.close(tube1_r)
+        os.close(tube2_w)
+
+        mot = input("Saisissez le mot : ")
+
+        os.write(tube1_w, mot.encode().ljust(BUFFER_SIZE, b'\x00'))
+        os.close(tube1_w)
+
+        data = os.read(tube2_r, 4)
+        os.close(tube2_r)
+
+        valR = int.from_bytes(data, byteorder='little')
+
+        if valR == 1:
+            print(f"Le mot '{mot}' existe dans le fichier.")
+        else:
+            print(f"Le mot '{mot}' n'existe pas dans le fichier.")
+
+    else:
+        os.close(tube1_w)
+        os.close(tube2_r)
+
+        data = os.read(tube1_r, BUFFER_SIZE)
+        os.close(tube1_r)
+
+        mot = data.rstrip(b'\x00').decode()
+
+        try:
+            with open("./fichier.txt", "r") as fichier:
+                valW = 0
+                for ligne in fichier:
+                    if mot in ligne:
+                        valW = 1
+                        break
+        except OSError as e:
+            print(f"fopen error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        os.write(tube2_w, valW.to_bytes(4, byteorder='little'))
+        os.close(tube2_w)
+
+        os.wait()
+
+if __name__ == "__main__":
+    main()
+
+
+//=======4.2=========================
+import os
+import sys
+
+def main():
+    # Taille du tampon (non strictement nécessaire en Python mais gardé pour la cohérence)
+    BUFFER_SIZE = 256
+
+    # Création des pipes (tube1: fils -> père, tube2: père -> fils)
+    try:
+        r1, w1 = os.pipe()
+        r2, w2 = os.pipe()
+    except OSError:
+        print("Erreur lors de la création des pipes")
+        sys.exit(1)
+
+    try:
+        pid = os.fork()
+    except OSError:
+        print("Erreur lors du fork")
+        sys.exit(1)
+
+    if pid == 0:  # --- PROCESSUS FILS ---
+        os.close(r1)  # Ferme lecture tube1
+        os.close(w2)  # Ferme écriture tube2
+
+        # Sauvegarder le vrai stdout (terminal)
+        stdout_terminal = os.dup(sys.stdout.fileno())
+
+        # Saisie du mot
+        # On utilise sys.stderr ou on écrit directement pour éviter les buffers
+        sys.stdout.write("Saisissez le mot : ")
+        sys.stdout.flush()
+        mot = sys.stdin.readline().strip().split()[0] # Équivalent scanf %s
+
+        # Rediriger stdout vers le tube1
+        os.dup2(w1, sys.stdout.fileno())
+        os.close(w1)
+
+        # Envoyer le mot (le print va dans le tube maintenant)
+        print(mot, end='')
+        sys.stdout.flush()
+        
+        # Fermer stdout pour signaler EOF au père
+        os.close(sys.stdout.fileno())
+
+        # Restauration de stdout vers le terminal
+        os.dup2(stdout_terminal, sys.stdout.fileno())
+        os.close(stdout_terminal)
+
+        # Lire le résultat du père depuis tube2
+        # os.read renvoie des bytes, on utilise l'unpacking pour l'entier
+        import struct
+        data = os.read(r2, 4) # sizeof(int) est généralement 4
+        os.close(r2)
+
+        if data:
+            valR = struct.unpack('i', data)[0]
+            if valR == 1:
+                print(f"Le mot '{mot}' existe dans le fichier.")
+            else:
+                print(f"Le mot '{mot}' n'existe pas dans le fichier.")
+
+    else:  # --- PROCESSUS PÈRE ---
+        os.close(w1)  # Ferme écriture tube1
+        os.close(r2)  # Ferme lecture tube2
+
+        # Rediriger stdin pour lire depuis le tube1
+        os.dup2(r1, sys.stdin.fileno())
+        os.close(r1)
+
+        # Recevoir le mot du fils (via stdin redirigé)
+        mot = sys.stdin.read().strip()
+
+        valW = 0
+        try:
+            with open("./fichier.txt", "r") as fichier:
+                for ligne in fichier:
+                    if mot in ligne:
+                        valW = 1
+                        break
+        except FileNotFoundError:
+            print("Erreur : fichier.txt introuvable")
+            sys.exit(1)
+
+        # Envoyer le résultat au fils via tube2
+        import struct
+        os.write(w2, struct.pack('i', valW))
+        os.close(w2)
+
+        # Attendre la fin du fils
+        os.wait()
+
+if __name__ == "__main__":
+    main()
+
+//=====4.3=======avec l'executable fils=================
+import os
+import sys
+
+def main():
+    # Création du tube (pipe)
+    try:
+        r, w = os.pipe()
+    except OSError:
+        print("Erreur : pipe")
+        sys.exit(1)
+
+    # Création du processus fils
+    try:
+        pid = os.fork()
+    except OSError:
+        print("Erreur : fork")
+        sys.exit(1)
+
+    if pid == 0:
+        # --- PROCESSUS FILS ---
+        
+        # Convertir les descripteurs de fichiers en chaînes pour les passer en arguments
+        lecture = str(r)
+        ecriture = str(w)
+
+        # Préparation des arguments pour execv
+        # En Python, le premier argument de la liste args doit être le nom du programme
+        args = ["./fils", lecture, ecriture]
+
+        try:
+            # os.execv remplace le processus actuel par le programme spécifié
+            os.execv("./fils", args)
+        except OSError:
+            print("Erreur : execv")
+            sys.exit(1)
+
+    else:
+        # --- PROCESSUS PÈRE ---
+        
+        # Le père ne lit pas, on ferme le côté lecture
+        os.close(r)
+
+        message = "Bonjour tout le monde: ceci est le message"
+        
+        # En Python, on doit encoder la chaîne en bytes avant de l'écrire dans un pipe
+        # +1 pour simuler le '\0' de fin de chaîne en C (facultatif en pur Python mais fidèle au C)
+        os.write(w, (message + '\0').encode())
+
+        # Fermer le côté écriture après l'envoi
+        os.close(w)
+
+        # Attendre la fin du fils
+        os.wait()
+
+if __name__ == "__main__":
+    main()
+
+//=======4.4================
+import os
+import sys
+
+#pourquoi je n'arrive pas à voire le variable d'environnement
+
+def main():
+    # Création du tube (pipe)
+    try:
+        tube = os.pipe() # tube[0] est lecture, tube[1] est écriture
+    except OSError:
+        print("Erreur : pipe")
+        sys.exit(1)
+
+    # Création du processus fils
+    try:
+        fils = os.fork()
+    except OSError:
+        print("Erreur : fork")
+        sys.exit(1)
+
+    # Préparation des chaînes pour l'environnement (commun aux deux avant l'exec)
+    fd_lecture = str(tube[0])
+    fd_ecriture = str(tube[1])
+
+    # Équivalent de setenv(name, value, overwrite)
+    os.environ["FD_LECTURE"] = fd_lecture
+    os.environ["FD_ECRITURE"] = fd_ecriture
+
+    if fils == 0:
+        
+        # Le fils n'a pas besoin d'arguments dans args car il lira l'environnement
+        args = ["./fils"]
+
+        try:
+            # os.execv remplace le processus actuel par le binaire "./fils"
+            os.execv("./fils", args)
+        except OSError:
+            print("Erreur : execv")
+            sys.exit(1)
+
+    else:
+        
+        # Le père ne lit pas, on ferme le côté lecture du tube
+        os.close(tube[0])
+
+        message = "Bonjour tout le monde"
+        
+        # En Python, on écrit des bytes. On ajoute '\0' pour être identique au C
+        os.write(tube[1], (message + '\0').encode())
+        
+        # Fermer le côté écriture
+        os.close(tube[1])
+
+        # Attendre la fin du fils
+        os.wait()
+
+if __name__ == "__main__":
+    main()
+
+
+//fils2====
+import os
+import sys
+
+def main():
+    # Récupérer les variables d'environnement (équivalent de getenv)
+    env_lecture = os.environ.get("FD_LECTURE")
+    env_ecriture = os.environ.get("FD_ECRITURE")
+
+    if env_lecture is None or env_ecriture is None:
+        print("Erreur : Variables d'environnement manquantes")
+        sys.exit(1)
+
+    # Convertir les chaînes en entiers (équivalent de atoi)
+    fd_lire = int(env_lecture)
+    fd_ecrire = int(env_ecriture)
+
+    # Fermer le côté écriture (le fils ne s'en sert pas ici)
+    os.close(fd_ecrire)
+
+    # Lire le message depuis le pipe
+    # os.read(fd, n) lit au maximum n octets et renvoie des bytes
+    try:
+        message_bytes = os.read(fd_lire, 255)
+        
+        # Convertir les bytes en chaîne de caractères pour l'affichage
+        # On décode et on retire le caractère nul '\0' si présent
+        message = message_bytes.decode().strip('\x00')
+        
+        print(f"Message lu: {message}")
+    except OSError as e:
+        print(f"Erreur lors de la lecture : {e}")
+    finally:
+        # Fermer le descripteur de lecture
+        os.close(fd_lire)
+
+if __name__ == "__main__":
+    main()
+
+
+
+//======5.1=============================
+//======5.2=============================
+//======5.3=============================
+//======5.4=============================
+//======5.5=============================
+//======5.6=============================
+//======5.7=============================
+//======5.8=============================
+//======5.9=============================
+//======5.10=============================
+//======5.11=============================
+
+
+//====6.1============================
+def main():
+    # Données de l'exercice 6.1 [1]
+    nb_plateaux = 2
+    faces_par_plateau = 2
+    nb_faces = nb_plateaux * faces_par_plateau  # 4 faces
+    cylindres_par_face = 1000
+    secteurs_par_cylindre = 60
+    octets_par_secteur = 1024
+
+    # --- a) Capacité totale ---
+    capacite_totale = nb_faces * cylindres_par_face * secteurs_par_cylindre * octets_par_secteur
+    print(f"a) Capacite totale du disque : {capacite_totale} octets")
+
+    # --- b) Position de l'octet spécifique ---
+    # Octet 300, secteur 45, cylindre 350, face 2, plateau 1
+    cylindre_dest = 350
+    face_dest = 1    # Face 2 (index 1)
+    secteur_dest = 45
+    octet_dest = 300
+
+    # Calcul de la position absolue (offset)
+    pos_absolue = (cylindre_dest * nb_faces * secteurs_par_cylindre * octets_par_secteur) + \
+                   (face_dest * secteurs_par_cylindre * octets_par_secteur) + \
+                   (secteur_dest * octets_par_secteur) + \
+                   octet_dest
+    
+    print(f"b) Position de l'octet : {pos_absolue}")
+
+    # --- c) Localisation de l'octet 78 000 000 ---
+    cible = 78000000
+    
+    reste = cible
+    # Utilisation de // pour la division entière
+    res_cylindre = reste // (nb_faces * secteurs_par_cylindre * octets_par_secteur)
+    reste %= (nb_faces * secteurs_par_cylindre * octets_par_secteur)
+
+    res_face = reste // (secteurs_par_cylindre * octets_par_secteur)
+    reste %= (secteurs_par_cylindre * octets_par_secteur)
+
+    res_secteur = reste // octets_par_secteur
+    res_pos_secteur = reste % octets_par_secteur
+
+    print("c) L'octet 78 000 000 se trouve :")
+    print(f"   - Cylindre : {res_cylindre}")
+    print(f"   - Face : {res_face}")
+    print(f"   - Secteur : {res_secteur}")
+    print(f"   - Position dans le secteur : {res_pos_secteur}")
+
+if __name__ == "__main__":
+    main()
+
+
+//====6.2============================
+import os
+import sys
+
+def main():
+    # Vérification du nombre d'arguments [1]
+    # sys.argv est le nom du script, donc len(sys.argv) doit être >= 2
+    if len(sys.argv) < 2:
+        print(f"Usage : {sys.argv} répertoire1 répertoire2 ...", file=sys.stderr)
+        sys.exit(1)
+
+    # On boucle sur chaque répertoire passé en argument [1, 2]
+    for i in range(1, len(sys.argv)):
+        repertoire = sys.argv[i]
+        
+        try:
+            # os.listdir remplace opendir/readdir et retourne la liste des noms [2, 3]
+            entrees = os.listdir(repertoire)
+        except OSError:
+            print(f"Erreur d'ouverture du répertoire : {repertoire}")
+            continue
+
+        print(f"\n--- Analyse du répertoire : {repertoire} ---")
+        
+        for nom_entree in entrees:
+            # Construction du chemin complet (remplace sprintf) [4]
+            chemin_complet = os.path.join(repertoire, nom_entree)
+
+            try:
+                # os.stat remplace la fonction stat() du C [5, 6]
+                st = os.stat(chemin_complet)
+
+                # Vérification : fichier ordinaire (S_ISREG) et taille > 1 Mo [7-9]
+                # 1 Mo = 1024 * 1024 = 1 048 576 octets
+                if os.path.isfile(chemin_complet) and st.st_size > 1048576:
+                    # st.st_uid correspond à l'UID du propriétaire [6, 10, 11]
+                    print(f"Nom : {nom_entree} | Taille : {st.st_size} octets | UID : {st.st_uid}")
+            except OSError:
+                # Si le fichier est inaccessible pendant l'analyse
+                continue
+
+if __name__ == "__main__":
+    main()
+
+
+//====6.3.a============================
+import os
+import struct
+import sys
+
+def main():
+    # 1. Saisie du nombre d'entiers (équivalent scanf %d)
+    try:
+        n = int(input("Combien d'entiers voulez-vous saisir ? "))
+    except ValueError:
+        print("Erreur : Veuillez entrer un nombre entier.")
+        sys.exit(1)
+
+    # 2. Saisie des entiers (remplace la boucle for et malloc)
+    # En Python, la gestion mémoire est automatique, pas besoin de malloc()
+    tab = []
+    for i in range(n):
+        try:
+            val = int(input(f"Entier {i + 1} : "))
+            tab.append(val)
+        except ValueError:
+            print("Erreur : Entrée invalide.")
+            sys.exit(1)
+
+    # 3. Ouverture avec descripteur de fichier [1, 2]
+    # Drapeaux : O_WRONLY (écriture seule), O_CREAT (création), O_TRUNC (écraser)
+    # Mode : 0o664 (Permissions octales : rw-rw-r--) [3]
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        mode = 0o664 
+        fd = os.open("tableau.bin", flags, mode)
+    except OSError as e:
+        print(f"Erreur lors de la création du fichier: {e}")
+        sys.exit(1)
+
+    # 4. Sauvegarde binaire [4, 5]
+    # 'struct.pack' transforme la liste d'entiers en bloc d'octets binaires
+    # Le format '{n}i' signifie 'n' entiers de type 'int' (standard 4 octets)
+    binary_data = struct.pack(f'{n}i', *tab)
+    
+    # Appel à write() via le descripteur [4, 5]
+    os.write(fd, binary_data)
+
+    print("Tableau sauvegardé avec succès dans 'tableau.bin'.")
+
+    # 5. Fermeture du descripteur [6]
+    os.close(fd)
+    # free(tab) est inutile en Python (Garbage Collector)
+
+if __name__ == "__main__":
+    main()
+
+
+//====6.3.b=============================
+import os
+import struct
+import sys
+
+def main():
+    nom_fichier = "tableau.bin"
+
+    # 1. Obtenir les informations sur le fichier via l'appel système stat [3, 4]
+    try:
+        st = os.stat(nom_fichier)
+    except OSError:
+        print("Erreur : impossible de lire les infos du fichier", file=sys.stderr)
+        sys.exit(1)
+
+    taille_totale = st.st_size  # Taille en octets [5]
+    # En C, un int fait généralement 4 octets. On calcule le nombre d'éléments [6]
+    nb_elements = taille_totale // 4 
+
+    print(f"Taille du fichier détectée : {taille_totale} octets ({nb_elements} entiers)")
+
+    # 2. Ouverture du fichier en lecture seule (O_RDONLY) [7]
+    try:
+        fd = os.open(nom_fichier, os.O_RDONLY)
+    except OSError as e:
+        print(f"Erreur lors de l'ouverture du fichier: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # 3. Lecture du bloc de données binaire [8]
+    # Python lit les octets directement dans un objet 'bytes'
+    try:
+        donnees_binaires = os.read(fd, taille_totale)
+    except OSError as e:
+        print(f"Erreur lors de la lecture des données: {e}", file=sys.stderr)
+        donnees_binaires = b""
+
+    # 4. Conversion des octets en tableau d'entiers (Unpacking)
+    # Contrairement au C qui utilise malloc et un cast (int *), 
+    # Python utilise struct.unpack pour interpréter les octets [9]
+    if donnees_binaires:
+        # Le format '{nb_elements}i' signifie : interpréter comme nb_elements entiers
+        tab = struct.unpack(f'{nb_elements}i', donnees_binaires)
+
+        # Affichage pour vérification
+        print("Contenu du tableau chargé :")
+        for val in tab:
+            print(val, end=" ")
+        print()
+
+    # 5. Nettoyage [2]
+    os.close(fd)
+    # free(tab) est inutile car Python gère la mémoire automatiquement
+
+if __name__ == "__main__":
+    main()
+
+
+
+//========7.1==================================
+import os
+import signal
+import time
+
+pid = os.fork()
+
+if pid == 0:
+    # FILS
+    while True:
+        print("Fils en cours d'exécution...")
+        time.sleep(1)
+
+else:
+    # PERE
+    while True:
+        print("\nMenu:")
+        print("s: stop")
+        print("r: resume")
+        print("q: quit")
+
+        choix = input("Choix: ")
+
+        if choix == 's':
+            os.kill(pid, signal.SIGSTOP)
+
+        elif choix == 'r':
+            os.kill(pid, signal.SIGCONT)
+
+        elif choix == 'q':
+            os.kill(pid, signal.SIGKILL)
+            break
+
+//========7.2 ==avec affiche.py================
+import os
+import sys
+import signal
+
+def main():
+    # Vérification des arguments (équivalent à argc/argv [1])
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv} pid_de_affiche", file=sys.stderr)
+        sys.exit(1)
+
+    # Récupération du PID et conversion (équivalent à atoi [2])
+    try:
+        pid_dest = int(sys.argv[3])
+    except ValueError:
+        print("Erreur: Le PID doit être un entier.", file=sys.stderr)
+        sys.exit(1)
+
+    # Saisie de l'entier
+    try:
+        n = int(input("Veuillez saisir un entier : "))
+    except ValueError:
+        print("Erreur: La saisie doit être un nombre entier.", file=sys.stderr)
+        sys.exit(1)
+
+    # Enregistrement dans le fichier /tmp/entier.txt
+    try:
+        with open("/tmp/entier.txt", "w") as fp:
+            fp.write(str(n))
+    except IOError as e:
+        print(f"Erreur lors de l'ouverture du fichier: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Envoi du signal SIGUSR1 au PID cible (équivalent à kill [4, 5])
+    try:
+        os.kill(pid_dest, signal.SIGUSR1)
+        print(f"Signal SIGUSR1 envoyé avec succès au PID {pid_dest}.")
+    except ProcessLookupError:
+        print(f"Erreur: Aucun processus ne possède le PID {pid_dest}.", file=sys.stderr)
+    except PermissionError:
+        print(f"Erreur: Permission refusée pour envoyer un signal à {pid_dest}.", file=sys.stderr)
+
+if __name__ == "__main__":
+    main()
+
+//==affiche.py===========
+import os
+import signal
+import time
+import sys
+
+# Fonction exécutée lors de la réception du signal (Signal Handler)
+def gestionnaire(numero, frame):
+    if numero == signal.SIGUSR1:  # Vérification du type de signal [4]
+        try:
+            # Ouverture et lecture de l'entier dans le fichier [3]
+            with open("/tmp/entier.txt", "r") as fp:
+                n = fp.read().strip()
+                print(f"\n[NOTIFICATION] L'entier enregistré est : {n}")
+                sys.exit(0)  # Terminaison propre après lecture
+        except FileNotFoundError:
+            print("\nErreur : Impossible de lire /tmp/entier.txt")
+
+def main():
+    # Affichage du PID pour permettre la communication avec saisit.py [1, 5]
+    print(f"Mon PID est : {os.getpid()}")
+
+    # Association de la fonction de capture pour SIGUSR1 [3]
+    # Remplace l'utilisation de la structure sigaction en C
+    signal.signal(signal.SIGUSR1, gestionnaire)
+
+    # Boucle d'attente utilisant sleep pour économiser les ressources [3, 6]
+    try:
+        while True:
+            print("J'attends que saisit.py m'envoie un signal...")
+            time.sleep(10) 
+    except KeyboardInterrupt:
+        # Permet de quitter proprement avec Ctrl-C si besoin
+        pass
+
+if __name__ == "__main__":
+    main()
+
+//========7.3==================================
+import os
+import signal
+import sys
+import time
+
+# Nombre de fils à créer [1, 2]
+NB_FILS = 5
+# Tableau pour stocker les PID des fils [3, 4]
+pids =  * NB_FILS
+# Variable pour aider le gestionnaire à identifier le rôle (Père ou Fils)
+est_parent = True
+
+def handle_sigterm(sig, frame):
+    """Gestionnaire de signal pour le message de fin [5, 6]"""
+    self_pid = os.getpid() # [3, 7]
+    if not est_parent:
+        print(f"[Fils {self_pid}] meurs")
+        sys.exit(0)
+    else:
+        print(f"[Père {self_pid}] tué->Fin du programme.")
+        sys.exit(0)
+
+def fils_process(index):
+    """Fonction exécutée par chaque fils [3, 8]"""
+    global est_parent
+    est_parent = False
+    
+    # Chaque fils installe son gestionnaire pour SIGTERM [6, 9]
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    
+    print(f"Fils {index} (PID: {os.getpid()}) démarré.")
+    while True:
+        # Boucle infinie demandée [2]
+        time.sleep(1) 
+
+def main():
+    global pids
+    # Installation du gestionnaire pour le père [6]
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
+    # Création des 5 fils via fork() [1, 8]
+    for i in range(NB_FILS):
+        pid = os.fork()
+        if pid == 0:
+            # Code du processus fils [3]
+            fils_process(i)
+            sys.exit(0)
+        else:
+            # Code du processus père : on stocke le PID du fils [3, 4]
+            pids[i] = pid
+
+    # Boucle de menu pour le père [2]
+    while True:
+        try:
+            print(f"\n--- MENU PERE (Mon PID: {os.getpid()}) ---")
+            print("1. Endormir un fils (SIGSTOP)")
+            print("2. Réveiller un fils (SIGCONT)")
+            print("3. Terminer un fils (SIGTERM)")
+            print("4. Quitter (Tue le père et les fils)")
+            
+            choix_input = input("Choix : ")
+            if not choix_input: continue
+            choix = int(choix_input)
+
+            if choix == 4:
+                # Le père termine tous ses fils avant de se tuer lui-même [4, 10]
+                for i in range(NB_FILS):
+                    try:
+                        os.kill(pids[i], signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                os.kill(os.getpid(), signal.SIGTERM)
+
+            num_fils_input = input(f"Numéro du fils (0 à {NB_FILS - 1}) : ")
+            if not num_fils_input: continue
+            num_fils = int(num_fils_input)
+
+            if num_fils < 0 or num_fils >= NB_FILS:
+                print("Fils invalide.")
+                continue
+
+            target_pid = pids[num_fils]
+
+            # Envoi des signaux selon le choix [4, 10]
+            if choix == 1:
+                os.kill(target_pid, signal.SIGSTOP) # Suspendre [11]
+                print(f"Fils {num_fils} suspendu.")
+            elif choix == 2:
+                os.kill(target_pid, signal.SIGCONT) # Reprendre [11]
+                print(f"Fils {num_fils} réveillé.")
+            elif choix == 3:
+                os.kill(target_pid, signal.SIGTERM) # Terminer [9]
+                print(f"Demande de terminaison envoyée au fils {num_fils}.")
+            else:
+                print("Option inconnue.")
+                
+        except (ValueError, EOFError):
+            print("\nEntrée invalide ou fin de programme.")
+            break
+
+if __name__ == "__main__":
+    main()
+
+
+//========7.4=============
+import sys
+
+def main():
+    # 1. Saisie de la taille et "allocation"
+    # En Python, la gestion mémoire est automatique, pas de malloc/free [1]
+    try:
+        n = int(input("Entrez la taille du tableau (n) : "))
+    except ValueError:
+        print("Erreur : n doit être un entier.")
+        return
+
+    # Création d'une liste (équivalent du tableau alloué dynamiquement) [1]
+    tab =  * n
+
+    # 2. Remplissage du tableau
+    for j in range(n):
+        try:
+            tab[j] = int(input(f"tab[{j}] = "))
+        except ValueError:
+            print("Entrée invalide, valeur mise à 0.")
+
+    # 3, 4 & 5. Gestion de l'erreur et point de retour
+    # Le bloc try/except remplace ici sigaction, sigsetjmp et siglongjmp [3, 4]
+    while True:
+        try:
+            i_input = input("\nEntrez l'indice i de l'élément à afficher : ")
+            if not i_input: 
+                break
+            i = int(i_input)
+
+            # En C, cette ligne génère un SIGSEGV si i est invalide [1, 2]
+            # En Python, cela lève un IndexError
+            print(f"Valeur de tab[{i}] = {tab[i]}")
+            
+            # Si l'affichage réussit, on sort de la boucle (fin du programme)
+            break 
+
+        except IndexError:
+            # Équivalent du gestionnaire_segv [4, 5]
+            print("\n[ERREUR] Erreur de segmentation détectée (i est hors limites) !")
+            # La boucle while recommence, simulant le retour au point de sauvegarde
+        except ValueError:
+            print("Veuillez entrer un nombre entier pour l'indice.")
+
+    print("Fin du programme sans erreur.")
+
+if __name__ == "__main__":
+    main()
+
+
+//=====8.1=================
+//=====8.2=================
+//=====8.3=================
+//=====8.4=================
+//=====8.5=================
+//=====8.6=================
