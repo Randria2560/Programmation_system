@@ -17,19 +17,16 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;  // accès tampon
 int nb_produits  = 0;
 int nb_consommes = 0;
 
-// ── Structure pour passer les arguments aux threads
 typedef struct {
     int id;      // numéro du thread
     int type;    // 0 = producteur, 1 = consommateur
 } Args;
 
-// ── Fonction PUSH — ajouter dans la pile
 void push(unsigned char valeur) {
     tampon[sommet] = valeur;
     sommet++;
 }
 
-// ── Fonction POP — retirer depuis la pile
 unsigned char pop() {
     sommet--;
     return tampon[sommet];
@@ -79,7 +76,7 @@ void *consommateur(void *arg) {
     Args *a = (Args *)arg;
     int   id = a->id;
 
-    srand(time(NULL) + id + 100);   // seed différent par thread
+    srand(time(NULL) + id + 100);   
 
     while (1) {
 
@@ -122,7 +119,6 @@ void *statistiques(void *arg) {
     return NULL;
 }
 
-// ── Main ────────────────────────────────────────────────────
 int main() {
     int N, M;
     printf("Nombre de producteurs  (N) : ");
@@ -157,18 +153,15 @@ int main() {
         pthread_create(&t_prod[i], NULL, producteur, &args_p[i]);
     }
 
-    // ⑤ Créer les M threads consommateurs
     for (int i = 0; i < M; i++) {
         args_c[i].id   = i + 1;
         args_c[i].type = 1;
         pthread_create(&t_cons[i], NULL, consommateur, &args_c[i]);
     }
 
-    // ⑥ Créer le thread de statistiques
     pthread_t t_stats;
     pthread_create(&t_stats, NULL, statistiques, NULL);
 
-    // ⑦ Attendre (les threads tournent indéfiniment)
     for (int i = 0; i < N; i++) pthread_join(t_prod[i], NULL);
     for (int i = 0; i < M; i++) pthread_join(t_cons[i], NULL);
 

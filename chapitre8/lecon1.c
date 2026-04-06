@@ -40,7 +40,7 @@ int cree_socket_tcp_ip() {
     // adresse.sin_port = htons(33016);
     // depuis localhost seulement :
     // inet_aton("127.0.0.1", &adresse.sin_addr);
-    if (bind(sock, (struct sockaddr*) &adresse,
+    if(bind(sock,(struct sockaddr*) &adresse,
     sizeof(struct sockaddr_in)) < 0)
     {
         close(sock);
@@ -76,7 +76,7 @@ int affiche_adresse_socket(int sock) {
 
 
 
-    
+/*Servueur TCP/IP*/
 /*C'est le "cœur" du programme serveur qui attend les clients.*/
 int main(void) {
     int sock_contact, sock_connectee;

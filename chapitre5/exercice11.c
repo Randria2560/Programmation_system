@@ -7,10 +7,8 @@
 
 #define TAILLE_BDD 15   // taille de la base de données
 
-// ── Base de données ─────────────────────────────────────────
 unsigned char bdd[TAILLE_BDD];   // initialisée à 0
 
-// ── Synchronisation ─────────────────────────────────────────
 
 // Protège nb_lecteurs
 // → 1 seul thread modifie le compteur à la fois
@@ -21,20 +19,16 @@ pthread_mutex_t mutex_lecteurs = PTHREAD_MUTEX_INITIALIZER;
 // → bloqué quand le 1er lecteur entre (libéré quand dernier sort)
 pthread_mutex_t mutex_bdd = PTHREAD_MUTEX_INITIALIZER;
 
-// Compte les lecteurs actifs
 int nb_lecteurs = 0;
 
-// ── Statistiques ────────────────────────────────────────────
 int nb_lectures  = 0;
 int nb_ecritures = 0;
 pthread_mutex_t mutex_stats = PTHREAD_MUTEX_INITIALIZER;
 
-// ── Structure arguments ─────────────────────────────────────
 typedef struct {
     int id;
 } Args;
 
-// ── Afficher la BDD ─────────────────────────────────────────
 void afficher_bdd() {
     printf("  BDD : [");
     for (int i = 0; i < TAILLE_BDD; i++) {
@@ -43,7 +37,6 @@ void afficher_bdd() {
     printf(" ]\n");
 }
 
-// ── Thread Lecteur ───────────────────────────────────────────
 void *lecteur(void *arg) {
     Args *a  = (Args *)arg;
     int   id = a->id;
@@ -55,7 +48,7 @@ void *lecteur(void *arg) {
         // ① Attendre entre 1 et 3 secondes
         sleep(1 + rand() % 3);
 
-        // ── ENTRER en lecture ──────────────────────────────
+        // ── ENTRER en lecture
 
         // ② Prendre le mutex pour modifier nb_lecteurs
         pthread_mutex_lock(&mutex_lecteurs);
@@ -85,7 +78,7 @@ void *lecteur(void *arg) {
                "(%d lecteurs actifs)\n",
                id, index, valeur, nb_lecteurs);
 
-        // ── SORTIR de lecture ──────────────────────────────
+        // ── SORTIR de lecture
 
         // ⑥ Décrémenter le compteur de lecteurs
         pthread_mutex_lock(&mutex_lecteurs);
@@ -104,7 +97,6 @@ void *lecteur(void *arg) {
     return NULL;
 }
 
-// ── Thread Rédacteur ─────────────────────────────────────────
 void *redacteur(void *arg) {
     Args *a  = (Args *)arg;
     int   id = a->id;
@@ -140,7 +132,6 @@ void *redacteur(void *arg) {
                id, index, avant, bdd[index]);
         afficher_bdd();
 
-        // ── SORTIR d'écriture ──────────────────────────────
 
         // ⑤ Libérer la BDD pour les autres
         pthread_mutex_unlock(&mutex_bdd);
@@ -149,14 +140,12 @@ void *redacteur(void *arg) {
     return NULL;
 }
 
-// ── Thread Statistiques ──────────────────────────────────────
 void *statistiques(void *arg) {
     while (1) {
         sleep(15);
 
         pthread_mutex_lock(&mutex_stats);
-        printf("\n════════════════════════════════\n");
-        printf("Stats : %d lectures, %d écritures\n",
+        printf("\nStats : %d lectures, %d écritures\n",
                nb_lectures, nb_ecritures);
         printf("════════════════════════════════\n\n");
         pthread_mutex_unlock(&mutex_stats);
@@ -164,11 +153,10 @@ void *statistiques(void *arg) {
     return NULL;
 }
 
-// ── Main ─────────────────────────────────────────────────────
+
 int main() {
     int N, M;
 
-    // ① Saisir N et M
     printf("Nombre de lecteurs   (N) : ");
     scanf("%d", &N);
     printf("Nombre de rédacteurs (M) : ");
@@ -211,7 +199,6 @@ int main() {
     pthread_t t_stats;
     pthread_create(&t_stats, NULL, statistiques, NULL);
 
-    // ⑦ Attendre (les threads tournent indéfiniment)
     for (int i = 0; i < N; i++) pthread_join(t_lect[i], NULL);
     for (int i = 0; i < M; i++) pthread_join(t_red[i],  NULL);
 

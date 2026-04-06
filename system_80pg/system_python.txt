@@ -656,16 +656,723 @@ if __name__ == "__main__":
 
 
 //======5.1=============================
+import threading
+
+def ma_fonction(tab):
+    for value in tab:
+        print(value, end=" ")
+    print()
+
+def main():
+    valeurs = [10, 20, 30, 40]
+
+    t1 = threading.Thread(target=ma_fonction, args=(valeurs,))
+    t1.start()
+    t1.join()
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.2=============================
+import threading
+import random
+
+def ma_fonction(result):
+    n = 5
+    t = [random.randint(0, 98) for _ in range(n)]
+    for value in t:
+        print(value, end=" ")
+    print()
+    result.append(t)
+
+def main():
+    result = []
+    t1 = threading.Thread(target=ma_fonction, args=(result,))
+    t1.start()
+    t1.join()
+    tableau_original = result[0] if result else None
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.3=============================
+import threading
+import random
+import time
+
+class TypeTableau:
+    def __init__(self):
+        self.n = 0
+        self.t = []
+        self.entier = 0
+
+result = None
+
+def generation(tab):
+    print("\n Génération du tableau...")
+    tab.t = [random.randint(0, 99) for _ in range(tab.n)]
+    time.sleep(2)
+    print("[Thread 1] Génération terminée.")
+
+def t_recherche(tab):
+    global result
+    trouve = 0
+    for i in range(tab.n):
+        if tab.t[i] == tab.entier:
+            trouve = 1
+            break
+    result = trouve
+
+def main():
+    global result
+    data = TypeTableau()
+
+    nb_elements = int(input("Combien d'éléments pour le tableau ? "))
+    data.n = nb_elements
+
+    t1 = threading.Thread(target=generation, args=(data,))
+    t1.start()
+    t1.join()
+
+    data.entier = int(input("Pendant ce temps, entrez la valeur x à rechercher : "))
+
+    recherche = threading.Thread(target=t_recherche, args=(data,))
+    recherche.start()
+    recherche.join()
+
+    if result == 1:
+        print(f"L'entier {data.entier} a été trouvé dans le tableau.")
+    else:
+        print(f"L'entier {data.entier} n'est pas dans le tableau.")
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.4=============================
+import threading
+import random
+import time
+import sys
+
+def generation(tab):
+    print(f"Génération d'un tableau de {tab['n']} éléments...")
+    tab['t'] = [random.randint(0, 99) for _ in range(tab['n'])]
+    time.sleep(1)
+
+def t_inclusion(p, result):
+    est_inclus = True
+    for i in range(p['t1']['n']):
+        trouve = False
+        for j in range(p['t2']['n']):
+            if p['t1']['t'][i] == p['t2']['t'][j]:
+                trouve = True
+                break
+        if not trouve:
+            est_inclus = False
+            break
+    result['value'] = est_inclus
+
+def t_annulation(stop_event):
+    while not stop_event.is_set():
+        c = sys.stdin.read(1)
+        if c.lower() == 'a':
+            print("\n[ANNULATION] Arrêt du programme par l'utilisateur.")
+            sys.exit(0)
+
+def main():
+    random.seed()
+
+    while True:
+        try:
+            entry = input("Taille T1 et T2 (T1 doit être <= T2) : ")
+            n1, n2 = map(int, entry.split())
+            if n1 <= n2:
+                break
+        except ValueError:
+            pass
+
+    data1 = {'n': n1, 't': []}
+    data2 = {'n': n2, 't': []}
+
+    thread1 = threading.Thread(target=generation, args=(data1,))
+    thread2 = threading.Thread(target=generation, args=(data2,))
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+
+    total = {
+        't1': data1,
+        't2': data2
+    }
+
+    result = {'value': False}
+    stop_event = threading.Event()
+
+    recherche = threading.Thread(target=t_inclusion, args=(total, result))
+    annulation = threading.Thread(target=t_annulation, args=(stop_event,), daemon=True)
+
+    recherche.start()
+    annulation.start()
+
+    recherche.join()
+    stop_event.set()
+
+    print(f"Résultat du calcul : {'Inclus' if result['value'] else 'Non inclus'}")
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.5=============================
+import threading
+import time
+import random
+import sys
+
+compteur = 0
+mon_mutex = threading.Lock()
+
+def incrementation(limite):
+    global compteur
+    while True:
+        with mon_mutex:
+            if compteur >= limite:
+                break
+            compteur += 1
+        time.sleep(random.randint(1, 5))
+
+def affiche(limite):
+    global compteur
+    while True:
+        with mon_mutex:
+            if compteur >= limite:
+                break
+            print(f"Valeur actuelle du compteur : {compteur}")
+        time.sleep(2)
+
+def main():
+    global compteur
+    if len(sys.argv) < 2:
+        return 1
+    limite = int(sys.argv[1])
+
+    t1 = threading.Thread(target=incrementation, args=(limite,))
+    t2 = threading.Thread(target=affiche, args=(limite,))
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+    print(f"Fin du programme. Compteur final : {compteur}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
 //======5.6=============================
+import threading
+import time
+import random
+
+N = 100
+tab = [0.0] * N
+mon_mutex = threading.Lock()
+
+def remplace():
+    while True:
+        with mon_mutex:
+            for i in range(1, 99):
+                tab[i] = (tab[i - 1] + tab[i] + tab[i + 1]) / 3.0
+        nbsec = random.randint(1, 3)
+        time.sleep(nbsec)
+
+def affiche():
+    while True:
+        with mon_mutex:
+            print("\n--- État du tableau ---")
+            for i in range(N):
+                print(f"Valeur [{i}]: {tab[i]:.2f}  ", end="")
+                if i % 5 == 4:
+                    print()
+        time.sleep(4)
+
+def main():
+    random.seed(time.time())
+
+    tab[0] = 0.0
+    tab[99] = 0.0
+    for i in range(1, 99):
+        tab[i] = float(random.randint(0, 99))
+
+    t1 = threading.Thread(target=remplace, daemon=True)
+    t2 = threading.Thread(target=affiche, daemon=True)
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.7=============================
-//======5.8=============================
+import threading
+import time
+import random
+import math
+
+N = 100
+compte = 0
+u = 0.0
+mutex = threading.Lock()
+nbsec = 0
+
+
+def thread1():
+    global compte, u, nbsec
+    while True:
+        with mutex:
+            compte += 1
+            u = (1.0 / 4.0) * math.pow(u - 1, 2)
+            print(f"La valeur de u dans 1: {u}")
+            nbsec = random.randint(1, 5)
+        time.sleep(nbsec)
+
+
+def thread2():
+    global compte, u, nbsec
+    while True:
+        with mutex:
+            compte += 1
+            u = (1.0 / 6.0) * math.pow(u - 2, 2)
+            print(f"La valeur de u dans 2: {u}")
+            nbsec = random.randint(1, 5)
+        time.sleep(nbsec)
+
+
+if __name__ == "__main__":
+    u = 1.0
+
+    t1 = threading.Thread(target=thread1)
+    t2 = threading.Thread(target=thread2)
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+
+//======5.8====avec le b=========================
+import threading
+import time
+import random
+
+NB_ITERATIONS = 10
+
+sem_t1 = threading.Semaphore(0)
+sem_t2 = threading.Semaphore(0)
+
+def thread_T1():
+    for i in range(1, NB_ITERATIONS + 1):
+        print(f"T1 [iter {i}] : début du traitement")
+        time.sleep(2)
+        print(f"T1 [iter {i}] : traitement terminé, j'attends T2")
+
+        sem_t1.release()
+        sem_t2.acquire()
+
+        print(f"T1 [iter {i}] : rendez-vous OK, on repart !\n")
+
+def thread_T2():
+    for i in range(1, NB_ITERATIONS + 1):
+        duree = 4 + random.randint(0, 5)
+        print(f"T2 [iter {i}] : début du traitement ({duree} secondes)")
+        time.sleep(duree)
+        print(f"T2 [iter {i}] : traitement terminé, j'attends T1")
+
+        sem_t2.release()
+        sem_t1.acquire()
+
+        print(f"T2 [iter {i}] : rendez-vous OK, on repart !\n")
+
+if __name__ == "__main__":
+    t1 = threading.Thread(target=thread_T1)
+    t2 = threading.Thread(target=thread_T2)
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+//avec le .b==
+import threading
+import time
+import random
+import sys
+
+NB_ITERATIONS = 10
+
+N = 0
+compteur = 0
+mutex = threading.Lock()
+barriere = threading.Semaphore(0)
+
+
+def rendez_vous(thread_id, iteration):
+    global compteur
+
+    with mutex:
+        compteur += 1
+        print(f"Thread {thread_id} [iter {iteration}] : arrivé au RDV ({compteur}/{N})")
+
+        if compteur == N:
+            print(f"─── Tous arrivés à l'iter {iteration} ! On repart ───\n")
+            compteur = 0
+            for _ in range(N):
+                barriere.release()
+
+    barriere.acquire()
+
+
+def thread_func(thread_id):
+    for i in range(1, NB_ITERATIONS + 1):
+        duree = random.randint(1, 5)
+        print(f"Thread {thread_id} [iter {i}] : travaille {duree} secondes")
+        time.sleep(duree)
+
+        rendez_vous(thread_id, i)
+
+        print(f"Thread {thread_id} [iter {i}] : repart !")
+
+
+def main():
+    global N
+
+    if len(sys.argv) < 2:
+        print(f"Usage : {sys.argv[0]} <N>", file=sys.stderr)
+        sys.exit(1)
+
+    N = int(sys.argv[1])
+    if N <= 0:
+        print("N doit être > 0", file=sys.stderr)
+        sys.exit(1)
+
+    threads = []
+    for i in range(1, N + 1):
+        t = threading.Thread(target=thread_func, args=(i,))
+        threads.append(t)
+
+    for t in threads:
+        t.start()
+
+    for t in threads:
+        t.join()
+
+
+if __name__ == "__main__":
+    main()
+
+
+
 //======5.9=============================
+import threading
+import semaphore as sem_module
+import time
+import random
+
+NB_OCTETS = 10
+
+boite = 0
+
+sem_vide = threading.Semaphore(1)
+sem_plein = threading.Semaphore(0)
+
+
+def emetteur():
+    global boite
+
+    for i in range(1, NB_OCTETS + 1):
+        duree = random.randint(1, 3)
+        time.sleep(duree)
+
+        sem_vide.acquire()
+
+        boite = 65 + i
+        print(f"Émetteur  [{i:2d}] : dépose   '{chr(boite)}'  (attend {duree}s)")
+
+        sem_plein.release()
+
+
+def recepteur():
+    global boite
+
+    for i in range(1, NB_OCTETS + 1):
+        duree = random.randint(1, 3)
+        time.sleep(duree)
+
+        sem_plein.acquire()
+
+        lu = boite
+        print(f"Récepteur [{i:2d}] : lit      '{chr(lu)}'  (attend {duree}s)")
+
+        sem_vide.release()
+
+
+def main():
+    print("=== Début de la communication ===\n")
+
+    t_emet = threading.Thread(target=emetteur)
+    t_recep = threading.Thread(target=recepteur)
+
+    t_emet.start()
+    t_recep.start()
+
+    t_emet.join()
+    t_recep.join()
+
+    print("\n=== Communication terminée ===")
+
+
+if __name__ == "__main__":
+    main()
+
+
 //======5.10=============================
-//======5.11=============================
+import threading
+import time
+import random
+
+TAILLE_TAMPON = 10
+
+tampon = bytearray(TAILLE_TAMPON)
+sommet = 0
+
+sem_vide  = threading.Semaphore(TAILLE_TAMPON)
+sem_plein = threading.Semaphore(0)
+mutex     = threading.Lock()
+
+nb_produits  = 0
+nb_consommes = 0
+
+def push(valeur):
+    global sommet
+    tampon[sommet] = valeur
+    sommet += 1
+
+def pop():
+    global sommet
+    sommet -= 1
+    return tampon[sommet]
+
+def producteur(id_):
+    global nb_produits
+
+    while True:
+        duree = random.randint(1, 3)
+        time.sleep(duree)
+
+        octet = random.randint(65, 90)
+
+        sem_vide.acquire()
+
+        with mutex:
+            push(octet)
+            nb_produits += 1
+            print(f"Producteur  {id_:2d} : dépose   '{chr(octet)}'  "
+                  f"[tampon : {sommet:2d}/{TAILLE_TAMPON} places]")
+
+        sem_plein.release()
+
+def consommateur(id_):
+    global nb_consommes
+
+    while True:
+        duree = random.randint(1, 3)
+        time.sleep(duree)
+
+        sem_plein.acquire()
+
+        with mutex:
+            octet = pop()
+            nb_consommes += 1
+            print(f"Consommateur {id_:2d} : retire   '{chr(octet)}'  "
+                  f"[tampon : {sommet:2d}/{TAILLE_TAMPON} places]")
+
+        sem_vide.release()
+
+def statistiques():
+    while True:
+        time.sleep(10)
+        print(f"\n─── Stats : {nb_produits} produits, {nb_consommes} consommés ───\n")
+
+def main():
+    try:
+        N = int(input("Nombre de producteurs  (N) : "))
+        M = int(input("Nombre de consommateurs (M) : "))
+    except ValueError:
+        print("Veuillez entrer des entiers valides.", flush=True)
+        return
+
+    if N <= 0 or M <= 0:
+        print("N et M doivent être > 0")
+        return
+
+    print(f"\n=== Démarrage : {N} producteurs, "
+          f"{M} consommateurs, tampon {TAILLE_TAMPON} ===\n")
+
+    threads = []
+
+    for i in range(N):
+        t = threading.Thread(target=producteur, args=(i + 1,), daemon=True)
+        t.start()
+        threads.append(t)
+
+    for i in range(M):
+        t = threading.Thread(target=consommateur, args=(i + 1,), daemon=True)
+        t.start()
+        threads.append(t)
+
+    t_stats = threading.Thread(target=statistiques, daemon=True)
+    t_stats.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nArrêt demandé.")
+
+if __name__ == "__main__":
+    main()
+
+
+//======5.11=====================
+import threading
+import time
+import random
+
+TAILLE_BDD = 15
+
+bdd = bytearray(TAILLE_BDD)
+
+mutex_lecteurs = threading.Lock()
+mutex_bdd = threading.Lock()
+mutex_stats = threading.Lock()
+
+nb_lecteurs = 0
+nb_lectures = 0
+nb_ecritures = 0
+
+
+def afficher_bdd():
+    print("  BDD : [" + "".join(f"{b:3d}" for b in bdd) + " ]")
+
+
+def lecteur(id):
+    global nb_lecteurs, nb_lectures
+
+    while True:
+        time.sleep(1 + random.randint(0, 2))
+
+        with mutex_lecteurs:
+            nb_lecteurs += 1
+            if nb_lecteurs == 1:
+                mutex_bdd.acquire()
+
+        index = random.randint(0, TAILLE_BDD - 1)
+        valeur = bdd[index]
+
+        with mutex_stats:
+            nb_lectures += 1
+
+        print(f"Lecteur  {id:2d} : lit    bdd[{index:2d}] = {valeur:3d}  ({nb_lecteurs} lecteurs actifs)")
+
+        with mutex_lecteurs:
+            nb_lecteurs -= 1
+            if nb_lecteurs == 0:
+                mutex_bdd.release()
+
+
+def redacteur(id):
+    global nb_ecritures
+
+    while True:
+        time.sleep(1 + random.randint(0, 9))
+
+        mutex_bdd.acquire()
+
+        index = random.randint(0, TAILLE_BDD - 1)
+        avant = bdd[index]
+        bdd[index] = random.randint(0, 255)
+
+        with mutex_stats:
+            nb_ecritures += 1
+
+        print(f"Rédacteur {id:2d} : écrit  bdd[{index:2d}] : {avant:3d} → {bdd[index]:3d}")
+        afficher_bdd()
+
+        mutex_bdd.release()
+
+
+def statistiques():
+    while True:
+        time.sleep(15)
+
+        with mutex_stats:
+            print(f"\nStats : {nb_lectures} lectures, {nb_ecritures} écritures")
+            print("════════════════════════════════\n")
+
+
+def main():
+    try:
+        N = int(input("Nombre de lecteurs   (N) : "))
+        M = int(input("Nombre de rédacteurs (M) : "))
+    except ValueError:
+        print("Veuillez entrer des entiers valides.", flush=True)
+        return
+
+    if N <= 0 or M <= 0:
+        print("N et M doivent être > 0")
+        return
+
+    print(f"\n=== Démarrage : {N} lecteurs, {M} rédacteurs, BDD {TAILLE_BDD} octets ===\n")
+    afficher_bdd()
+    print()
+
+    threads = []
+
+    for i in range(N):
+        t = threading.Thread(target=lecteur, args=(i + 1,), daemon=True)
+        threads.append(t)
+        t.start()
+
+    for i in range(M):
+        t = threading.Thread(target=redacteur, args=(i + 1,), daemon=True)
+        threads.append(t)
+        t.start()
+
+    t_stats = threading.Thread(target=statistiques, daemon=True)
+    t_stats.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nArrêt du programme.")
+
+
+if __name__ == "__main__":
+    main()
 
 
 //====6.1============================

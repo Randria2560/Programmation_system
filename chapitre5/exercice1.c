@@ -1,6 +1,5 @@
 /*Écrire un programme qui crée un thread qui prend en paramètre un tableau
 d’entiers et l’aﬃche dans la console.*/
-
 #include <pthread.h>
 #include <stdio.h>
 

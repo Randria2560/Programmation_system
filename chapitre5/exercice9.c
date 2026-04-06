@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define NB_OCTETS 10   // nombre d'octets à échanger
+#define NB_OCTETS 10  
 
 
 unsigned char boite = 0;   // la variable globale partagée
@@ -43,7 +43,7 @@ void *emetteur(void *arg) {
     return NULL;
 }
 
-// ── Récepteur ───────────────────────────────────────────────
+
 void *recepteur(void *arg) {
     srand(time(NULL) + 1);
 

@@ -691,17 +691,1151 @@ int main() {
 }
 
 
-//===========5.1========================
+//======5.1===========================
+/*Écrire un programme qui crée un thread qui prend en paramètre un tableau
+d’entiers et l’aﬃche dans la console.*/
+
+#include <pthread.h>
+#include <stdio.h>
+
+typedef struct
+{
+    int n;
+    int *t;
+}tableau;
+
+
+void *ma_fonction(void *arg)
+{
+    tableau *tab=(tableau *)arg;
+    for(int i=0 ; i<tab->n ; i++)
+    {
+        printf("%d ", tab->t[i]);
+    }
+     pthread_exit(NULL);
+}
+
+int main()
+{
+     pthread_t t1;
+    tableau tableau_original;
+    tableau_original.n=4;
+
+    int valeurs[] = {10, 20, 30, 40};
+    tableau_original.t = valeurs;
+
+    pthread_create(&t1, NULL, ma_fonction,(void *) &tableau_original);
+
+    pthread_join(t1, NULL); 
+
+    return 0;
+}
+
+
 //======5.2=============================
+/*Écrire un programme qui crée un thread qui alloue un tableau d’entiers,
+initialise les éléments par des entiers aléatoires entre 0 et 99, et retourne le tableau d’entiers.*/
+
+#include <pthread.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+
+typedef struct
+{
+    int n;
+    int *t;
+}tableau;
+
+
+void *ma_fonction(void *arg)
+{
+    tableau *tab;
+    tab->n=5;
+    srand(time(NULL));
+    tab->t=malloc(tab->n * sizeof(int));
+    for(int i=0 ; i<tab->n ; i++)
+    {
+        tab->t[i] = rand()%99;
+        printf("%d ", tab->t[i]);
+    }
+    return tab;  //retoune pointeur
+}
+
+int main()
+{
+    pthread_t t1;
+    void *tableau_original;
+    pthread_create(&t1, NULL, ma_fonction,NULL);
+
+    pthread_join(t1, &tableau_original); 
+
+    return 0;
+}
+
 //======5.3=============================
+#include <pthread.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h> 
+
+typedef struct
+{
+    int n;
+    int *t;
+    int entier; 
+} TypeTableau;
+
+void *generation(void *arg)
+{
+    TypeTableau *tab = (TypeTableau *)arg;
+    printf("\n Génération du tableau...\n");
+    for(int i = 0; i < tab->n; i++)
+    {
+        tab->t[i] = rand() % 100;
+    }
+    sleep(2); 
+    printf("[Thread 1] Génération terminée.\n");
+    pthread_exit(NULL);
+}
+
+void *t_recherche(void *arg)
+{
+    TypeTableau *tab = (TypeTableau *)arg;
+    long trouve = 0; 
+    
+    for(int i = 0; i < tab->n; i++)
+    { 
+        if(tab->t[i] == tab->entier)
+        {
+            trouve = 1;
+            break;
+        }
+    }
+    pthread_exit((void*)trouve);
+}
+
+int main()
+{
+    pthread_t t1, recherche;
+    TypeTableau data;
+    int nb_elements;
+    void* status; 
+
+    srand(time(NULL));
+
+    printf("Combien d'éléments pour le tableau ? ");
+    scanf("%d", &nb_elements);
+    
+    data.n = nb_elements;
+    data.t = malloc(nb_elements * sizeof(int));
+
+    pthread_create(&t1, NULL, generation, (void*)&data); 
+    pthread_join(t1, NULL);
+
+    printf("Pendant ce temps, entrez la valeur x à rechercher : ");
+    scanf("%d", &data.entier);
+
+    pthread_create(&recherche, NULL, t_recherche, (void*)&data);
+    
+    pthread_join(recherche, &status);
+    int result = (int)(long)status; 
+
+    if(result == 1)
+    {
+        printf("L'entier %d a été trouvé dans le tableau.\n", data.entier);
+    }
+    else
+    {
+        printf("L'entier %d n'est pas dans le tableau.\n", data.entier);
+    }
+
+    free(data.t);
+    return 0;
+}
+
 //======5.4=============================
+#include <pthread.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h> 
+
+typedef struct {
+    int n;
+    int *t;
+} TypeTableau;
+
+typedef struct {
+    TypeTableau t1;
+    TypeTableau t2;
+} ParamInclusion;
+
+void *generation(void *arg) {
+    TypeTableau *tab = (TypeTableau *)arg;
+    printf("Génération d'un tableau de %d éléments...\n", tab->n);
+    for(int i = 0; i < tab->n; i++) {
+        tab->t[i] = rand() % 100; 
+    }
+    sleep(1); 
+    pthread_exit(NULL);
+}
+
+void* t_inclusion(void* arg) {
+    ParamInclusion* p = (ParamInclusion*)arg;
+    long est_inclus = 1; 
+
+    for (int i = 0; i < p->t1.n; i++) {
+        int trouve = 0;
+        for (int j = 0; j < p->t2.n; j++) {
+            if (p->t1.t[i] == p->t2.t[j]) {
+                trouve = 1;
+                break; 
+            }
+        }
+        if (trouve == 0) {
+            est_inclus = 0; 
+            break;
+        }
+    }
+    pthread_exit((void*)est_inclus); 
+}
+
+void* t_annulation(void* arg) {
+    char c;
+    while (1) {
+        c = getchar();
+        if (c == 'A' || c == 'a') {
+            printf("\n[ANNULATION] Arrêt du programme par l'utilisateur.\n");
+            exit(0); 
+        }
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2, recherche, annulation;
+    TypeTableau data1, data2;
+    int n1, n2;
+    void* status; 
+
+    srand(time(NULL));
+
+    do {
+        printf("Taille T1 et T2 (T1 doit être <= T2) : ");
+        scanf("%d %d", &n1, &n2);
+    } while (n1 > n2);
+    
+    // Nettoyage du tampon pour le futur getchar()
+    while (getchar() != '\n'); 
+
+    data1.n = n1;
+    data1.t = malloc(n1 * sizeof(int));
+    data2.n = n2;
+    data2.t = malloc(n2 * sizeof(int));
+
+    pthread_create(&t1, NULL, generation, (void*)&data1); 
+    pthread_create(&t2, NULL, generation, (void*)&data2); 
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    ParamInclusion total = {data1, data2};
+
+    pthread_create(&recherche, NULL, t_inclusion, (void*)&total);
+    pthread_create(&annulation, NULL, t_annulation, NULL);
+
+    pthread_join(recherche, &status);
+
+    printf("Résultat du calcul : %s\n", (long)status ? "Inclus" : "Non inclus");
+
+    // Libération de la mémoire [4]
+    free(data1.t);
+    free(data2.t);
+   
+    return 0;
+}
+
+
 //======5.5=============================
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+
+int compteur = 0; 
+pthread_mutex_t mon_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* incrementation(void* arg) {
+    int limite = (int)(long)arg;
+    while (1) {
+        pthread_mutex_lock(&mon_mutex);
+        if (compteur >= limite) {
+            pthread_mutex_unlock(&mon_mutex);
+            break;
+        }
+        compteur++; 
+        pthread_mutex_unlock(&mon_mutex);
+        
+        sleep(rand() % 5 + 1);
+    }
+    pthread_exit(NULL); 
+}
+
+void* affiche(void* arg) {
+    int limite = (int)(long)arg;
+    while (1) {
+        pthread_mutex_lock(&mon_mutex);
+        if (compteur >= limite) {
+            pthread_mutex_unlock(&mon_mutex);
+            break;
+        }
+        printf("Valeur actuelle du compteur : %d\n", compteur);
+        pthread_mutex_unlock(&mon_mutex);
+        
+        sleep(2); // Affichage toutes les 2 secondes [1]
+    }
+    pthread_exit(NULL);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) return 1;
+    int limite = atoi(argv[1]);
+    pthread_t t1, t2;
+    srand(time(NULL));
+
+    pthread_create(&t1, NULL, incrementation, (void*)(long)limite);
+    pthread_create(&t2, NULL, affiche, (void*)(long)limite);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    printf("Fin du programme. Compteur final : %d\n", compteur);
+    return 0;
+}
+
+
 //======5.6=============================
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+#include <unistd.h> 
+
+#define N 100
+double tab[N];
+pthread_mutex_t mon_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void *remplace(void *arg)
+{
+    int nbsec;
+    while(1) 
+    {
+        pthread_mutex_lock(&mon_mutex);
+        for(int i=1 ; i<99 ; i++)
+        {
+            tab[i] = (tab[i-1] + tab[i] + tab[i+1]) / 3.0;
+        }
+        pthread_mutex_unlock(&mon_mutex);
+        
+        nbsec = rand() % 3 + 1; // 1 à 3 secondes
+        sleep(nbsec);
+    }
+    return NULL;
+}
+
+void *affiche(void *arg)
+{
+    while(1) 
+    {
+        pthread_mutex_lock(&mon_mutex); 
+        printf("\n--- État du tableau ---\n");
+        for(int i=0 ; i<N ; i++)
+        {
+            printf("Valeur [%d]: %.2f  ", i, tab[i]);
+            if (i % 5 == 4) printf("\n"); 
+        }
+        pthread_mutex_unlock(&mon_mutex);
+
+        sleep(4);
+    }
+    return NULL;
+}
+
+int main()
+{
+    pthread_t t1, t2;
+    srand(time(NULL));
+
+    // Initialisation
+    tab[0] = 0;
+    tab[99] = 0;
+    for(int i=1; i<99 ; i++)
+    {
+        tab[i] = (double)(rand() % 100);
+    }
+
+    // Création des threads [11, 12]
+    pthread_create(&t1, NULL, remplace, NULL);
+    pthread_create(&t2, NULL, affiche, NULL);
+
+    // Attente des threads (le programme tournera indéfiniment ici) [13]
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    return 0;
+}
+
+
 //======5.7=============================
-//======5.8=============================
-//======5.9=============================
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+#include <unistd.h> 
+#include <math.h>
+
+#define N 100
+int compte=0;
+double u;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int nbsec=0;
+
+void *thread1(void *arg)
+{ 
+    while(1)
+    {
+        pthread_mutex_lock(&mutex);
+        compte +=1;
+        u=(1.0/4.0)*pow(u-1,2);
+        printf("La valeur de u dans 1: %lf\n",u);
+        nbsec=rand()%5+1;
+        pthread_mutex_unlock(&mutex);
+        sleep(nbsec);
+
+    }  
+    return NULL; 
+}
+
+void *thread2(void *arg)
+{
+    while(1)
+    {
+        pthread_mutex_lock(&mutex);
+        compte +=1;
+        u=(1.0/6.0)*pow(u-2,2);
+        printf("La valeur de u dans 2: %lf\n",u);
+        nbsec=rand()%5+1;
+        pthread_mutex_unlock(&mutex);
+        sleep(nbsec);
+
+    }
+    return NULL;
+}
+
+int main()
+{
+    pthread_t t1, t2;
+    srand(time(NULL));
+    u=1;
+
+    // Création des threads [11, 12]
+    pthread_create(&t1, NULL, thread1, NULL);
+    pthread_create(&t2, NULL, thread2, NULL);
+
+    // Attente des threads (le programme tournera indéfiniment ici) [13]
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    pthread_mutex_destroy(&mutex);
+
+    return 0;
+}
+
+//======5.8=======a et b======================
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define NB_ITERATIONS 10
+
+int N;                       
+int compteur = 0;       
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// barriere : bloque les threads jusqu'à ce que tous soient là
+sem_t barriere;
+
+// Appelée par chaque thread quand il arrive au rendez-vous
+void rendez_vous(int id, int iteration) {
+
+    // ① Prendre le mutex pour modifier le compteur
+    pthread_mutex_lock(&mutex);
+    compteur++;
+    printf("Thread %d [iter %d] : arrivé au RDV (%d/%d)\n",
+           id, iteration, compteur, N);
+
+    if (compteur == N) {
+        // ② Dernier arrivé → réveille TOUS les threads
+        printf("─── Tous arrivés à l'iter %d ! On repart ───\n\n",
+               iteration);
+
+        // Remettre le compteur à 0 pour la prochaine itération
+        compteur = 0;
+
+        // Libérer N threads bloqués sur sem_wait
+        for (int i = 0; i < N; i++) {
+            sem_post(&barriere);
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+
+    // ③ Chaque thread attend que le dernier arrive
+    sem_wait(&barriere);
+}
+
+
+void *thread_func(void *arg) {
+    int id = *(int *)arg;
+
+    // Seed différent pour chaque thread
+    srand(time(NULL) + id);
+
+    for (int i = 1; i <= NB_ITERATIONS; i++) {
+
+        // ① Traitement de durée aléatoire entre 1 et 5 secondes
+        int duree = 1 + rand() % 5;
+        printf("Thread %d [iter %d] : travaille %d secondes\n",id, i, duree);
+        sleep(duree);
+
+        // ② Aller au rendez-vous
+        rendez_vous(id, i);
+
+        // ③ Repartir après le rendez-vous
+        printf("Thread %d [iter %d] : repart !\n", id, i);
+    }
+
+    return NULL;
+}
+
+
+int main(int argc, char *argv[]) {
+
+    // Vérifier que N est passé en argument
+    if (argc < 2) {
+        fprintf(stderr, "Usage : %s <N>\n", argv[0]);
+        return 1;
+    }
+
+    // Récupérer N depuis argv
+    N = atoi(argv[1]);
+    if (N <= 0) {
+        fprintf(stderr, "N doit être > 0\n");
+        return 1;
+    }
+
+    // Allouer les threads et leurs identifiants
+    pthread_t *threads = malloc(N * sizeof(pthread_t));
+    int       *ids     = malloc(N * sizeof(int));
+
+    // Initialiser le sémaphore à 0
+    // → tous bloqués jusqu'au dernier arrivé
+    sem_init(&barriere, 0, 0);
+
+    // Créer les N threads
+    for (int i = 0; i < N; i++) {
+        ids[i] = i + 1;
+        pthread_create(&threads[i], NULL, thread_func, &ids[i]);
+    }
+
+    // Attendre la fin de tous les threads
+    for (int i = 0; i < N; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Libérer les ressources
+    sem_destroy(&barriere);
+    pthread_mutex_destroy(&mutex);
+    free(threads);
+    free(ids);
+
+    return 0;
+}
+
+//===b================================
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define NB_ITERATIONS 10
+
+// sem_t1 : T1 signale à T2 qu'il est arrivé au rendez-vous
+// sem_t2 : T2 signale à T1 qu'il est arrivé au rendez-vous
+sem_t sem_t1;
+sem_t sem_t2;
+
+// ── Thread T1 
+void *thread_T1(void *arg) {
+
+    for (int i = 1; i <= NB_ITERATIONS; i++) {
+        printf("T1 [iter %d] : début du traitement\n", i);
+        sleep(2);
+        printf("T1 [iter %d] : traitement terminé, j'attends T2\n", i);
+
+        // ② T1 signale à T2 qu'il est arrivé
+        sem_post(&sem_t1);
+        // ③ T1 attend que T2 soit arrivé
+        sem_wait(&sem_t2);
+
+        // ④ Les deux sont au rendez-vous → on repart
+        printf("T1 [iter %d] : rendez-vous OK, on repart !\n\n", i);
+    }
+    return NULL;
+}
+
+void *thread_T2(void *arg) {
+
+    srand(time(NULL));
+
+    for (int i = 1; i <= NB_ITERATIONS; i++) {
+
+        int duree = 4 + rand() % 6;   
+        printf("T2 [iter %d] : début du traitement (%d secondes)\n", i, duree);
+        sleep(duree);
+        printf("T2 [iter %d] : traitement terminé, j'attends T1\n", i);
+
+        // ② T2 signale à T1 qu'il est arrivé
+        sem_post(&sem_t2);
+
+        // ③ T2 attend que T1 soit arrivé
+        sem_wait(&sem_t1);
+
+        // ④ Les deux sont au rendez-vous → on repart
+        printf("T2 [iter %d] : rendez-vous OK, on repart !\n\n", i);
+    }
+
+    return NULL;
+}
+
+int main() {
+    pthread_t t1, t2;
+
+    // bloqué
+    sem_init(&sem_t1, 0, 0);
+    sem_init(&sem_t2, 0, 0);
+
+    pthread_create(&t1, NULL, thread_T1, NULL);
+    pthread_create(&t2, NULL, thread_T2, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+
+    
+    sem_destroy(&sem_t1);
+    sem_destroy(&sem_t2);
+
+    return 0;
+}
+
+
+//======5.9================================
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <time.h>
+
+#define NB_OCTETS 10  
+
+
+unsigned char boite = 0;   // la variable globale partagée
+
+// sem_vide  : autorise l'émetteur à déposer
+//             (1 = boîte vide = émetteur peut déposer)
+// sem_plein : autorise le récepteur à lire
+//             (0 = boîte vide au départ = récepteur doit attendre)
+sem_t sem_vide;
+sem_t sem_plein;
+
+
+void *emetteur(void *arg) {
+    srand(time(NULL));
+
+    for (int i = 1; i <= NB_OCTETS; i++) {
+
+        // ① Attendre une durée variable entre 1 et 3 secondes
+        int duree = 1 + rand() % 3;
+        sleep(duree);
+
+        // ② Attendre que la boîte soit VIDE
+        //    bloque si sem_vide = 0 (boîte encore pleine)
+        sem_wait(&sem_vide);
+
+        // ③ Déposer l'octet dans la boîte
+        boite = (unsigned char)(65 + i);   // A, B, C, D...
+        printf("Émetteur  [%2d] : dépose   '%c'  (attend %ds)\n",
+               i, boite, duree);
+
+        // ④ Signaler au récepteur que la boîte est PLEINE
+        sem_post(&sem_plein);
+    }
+
+    return NULL;
+}
+
+
+void *recepteur(void *arg) {
+    srand(time(NULL) + 1);
+
+    for (int i = 1; i <= NB_OCTETS; i++) {
+
+        int duree = 1 + rand() % 3;
+        sleep(duree);
+
+        // ② Attendre que la boîte soit PLEINE
+        //    bloque si sem_plein = 0 (boîte encore vide)
+        sem_wait(&sem_plein);
+
+        // ③ Lire l'octet depuis la boîte
+        unsigned char lu = boite;
+        printf("Récepteur [%2d] : lit      '%c'  (attend %ds)\n",
+               i, lu, duree);
+
+        // ④ Signaler à l'émetteur que la boîte est VIDE
+        sem_post(&sem_vide);
+    }
+
+    return NULL;
+}
+int main() {
+    pthread_t t_emet, t_recep;
+
+    //    sem_vide  = 1 → boîte vide au départ → émetteur peut déposer
+    //    sem_plein = 0 → boîte vide au départ → récepteur doit attendre
+    sem_init(&sem_vide,  0, 1);
+    sem_init(&sem_plein, 0, 0);
+
+    printf("=== Début de la communication ===\n\n");
+
+    pthread_create(&t_emet,  NULL, emetteur,  NULL);
+    pthread_create(&t_recep, NULL, recepteur, NULL);
+
+    pthread_join(t_emet,  NULL);
+    pthread_join(t_recep, NULL);
+
+    printf("\n=== Communication terminée ===\n");
+
+    sem_destroy(&sem_vide);
+    sem_destroy(&sem_plein);
+
+    return 0;
+}
+
 //======5.10=============================
-//======5.11=============================
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <time.h>
+
+#define TAILLE_TAMPON 10  
+
+unsigned char tampon[TAILLE_TAMPON];   // le tableau de stockage
+int           sommet = 0;              // index du prochain élément
+
+sem_t           sem_vide;    // nombre de places vides  (init = 10)
+sem_t           sem_plein;   // nombre de places pleines (init = 0)
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;  // accès tampon
+
+int nb_produits  = 0;
+int nb_consommes = 0;
+
+typedef struct {
+    int id;      // numéro du thread
+    int type;    // 0 = producteur, 1 = consommateur
+} Args;
+
+void push(unsigned char valeur) {
+    tampon[sommet] = valeur;
+    sommet++;
+}
+
+unsigned char pop() {
+    sommet--;
+    return tampon[sommet];
+}
+
+void *producteur(void *arg) {
+    Args *a = (Args *)arg;
+    int   id = a->id;
+
+    srand(time(NULL) + id);   // seed différent par thread
+
+    while (1) {
+
+        // ① Attendre entre 1 et 3 secondes
+        int duree = 1 + rand() % 3;
+        sleep(duree);
+
+        // ② Produire un octet aléatoire
+        unsigned char octet = 65 + rand() % 26;   // lettre A-Z
+
+        // ③ Attendre qu'il y ait une place vide
+        //    BLOQUÉ si tampon plein (sem_vide = 0)
+        sem_wait(&sem_vide);
+
+        // ④ Prendre le mutex pour accéder au tampon
+        pthread_mutex_lock(&mutex);
+
+        // ⑤ Déposer l'octet dans le tampon (push)
+        push(octet);
+        nb_produits++;
+
+        printf("Producteur  %2d : dépose   '%c'  "
+               "[tampon : %2d/%d places]\n",
+               id, octet, sommet, TAILLE_TAMPON);
+
+        // ⑥ Libérer le mutex
+        pthread_mutex_unlock(&mutex);
+
+        // ⑦ Signaler qu'une place est maintenant pleine
+        sem_post(&sem_plein);
+    }
+
+    return NULL;
+}
+
+void *consommateur(void *arg) {
+    Args *a = (Args *)arg;
+    int   id = a->id;
+
+    srand(time(NULL) + id + 100);   
+
+    while (1) {
+
+        // ① Attendre entre 1 et 3 secondes
+        int duree = 1 + rand() % 3;
+        sleep(duree);
+
+        // ② Attendre qu'il y ait un octet à lire
+        //    BLOQUÉ si tampon vide (sem_plein = 0)
+        sem_wait(&sem_plein);
+
+        // ③ Prendre le mutex pour accéder au tampon
+        pthread_mutex_lock(&mutex);
+
+        // ④ Retirer l'octet depuis le tampon (pop)
+        unsigned char octet = pop();
+        nb_consommes++;
+
+        printf("Consommateur %2d : retire   '%c'  "
+               "[tampon : %2d/%d places]\n",
+               id, octet, sommet, TAILLE_TAMPON);
+
+        // ⑤ Libérer le mutex
+        pthread_mutex_unlock(&mutex);
+
+        // ⑥ Signaler qu'une place est maintenant vide
+        sem_post(&sem_vide);
+    }
+
+    return NULL;
+}
+
+// Affiche les stats toutes les 10 secondes
+void *statistiques(void *arg) {
+    while (1) {
+        sleep(10);
+        printf("\n─── Stats : %d produits, %d consommés ───\n\n",
+               nb_produits, nb_consommes);
+    }
+    return NULL;
+}
+
+int main() {
+    int N, M;
+    printf("Nombre de producteurs  (N) : ");
+    scanf("%d", &N);
+    printf("Nombre de consommateurs (M) : ");
+    scanf("%d", &M);
+
+    if (N <= 0 || M <= 0) {
+        fprintf(stderr, "N et M doivent être > 0\n");
+        return 1;
+    }
+
+    //    sem_vide  = TAILLE_TAMPON → toutes les places sont vides
+    //    sem_plein = 0             → aucune place n'est pleine
+    sem_init(&sem_vide,  0, TAILLE_TAMPON);
+    sem_init(&sem_plein, 0, 0);
+
+    // ③ Allouer les tableaux de threads et arguments
+    pthread_t *t_prod  = malloc(N * sizeof(pthread_t));
+    pthread_t *t_cons  = malloc(M * sizeof(pthread_t));
+    Args      *args_p  = malloc(N * sizeof(Args));
+    Args      *args_c  = malloc(M * sizeof(Args));
+
+    printf("\n=== Démarrage : %d producteurs, "
+           "%d consommateurs, tampon %d ===\n\n",
+           N, M, TAILLE_TAMPON);
+
+    // ④ Créer les N threads producteurs
+    for (int i = 0; i < N; i++) {
+        args_p[i].id   = i + 1;
+        args_p[i].type = 0;
+        pthread_create(&t_prod[i], NULL, producteur, &args_p[i]);
+    }
+
+    for (int i = 0; i < M; i++) {
+        args_c[i].id   = i + 1;
+        args_c[i].type = 1;
+        pthread_create(&t_cons[i], NULL, consommateur, &args_c[i]);
+    }
+
+    pthread_t t_stats;
+    pthread_create(&t_stats, NULL, statistiques, NULL);
+
+    for (int i = 0; i < N; i++) pthread_join(t_prod[i], NULL);
+    for (int i = 0; i < M; i++) pthread_join(t_cons[i], NULL);
+
+    // ⑧ Libérer les ressources
+    sem_destroy(&sem_vide);
+    sem_destroy(&sem_plein);
+    pthread_mutex_destroy(&mutex);
+    free(t_prod);
+    free(t_cons);
+    free(args_p);
+    free(args_c);
+
+    return 0;
+}
+
+
+//======5.11===============================
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
+
+#define TAILLE_BDD 15   // taille de la base de données
+
+unsigned char bdd[TAILLE_BDD];   // initialisée à 0
+
+
+// Protège nb_lecteurs
+// → 1 seul thread modifie le compteur à la fois
+pthread_mutex_t mutex_lecteurs = PTHREAD_MUTEX_INITIALIZER;
+
+// Protège la BDD
+// → bloqué quand un rédacteur écrit
+// → bloqué quand le 1er lecteur entre (libéré quand dernier sort)
+pthread_mutex_t mutex_bdd = PTHREAD_MUTEX_INITIALIZER;
+
+int nb_lecteurs = 0;
+
+int nb_lectures  = 0;
+int nb_ecritures = 0;
+pthread_mutex_t mutex_stats = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct {
+    int id;
+} Args;
+
+void afficher_bdd() {
+    printf("  BDD : [");
+    for (int i = 0; i < TAILLE_BDD; i++) {
+        printf("%3d", bdd[i]);
+    }
+    printf(" ]\n");
+}
+
+void *lecteur(void *arg) {
+    Args *a  = (Args *)arg;
+    int   id = a->id;
+
+    srand(time(NULL) + id);
+
+    while (1) {
+
+        // ① Attendre entre 1 et 3 secondes
+        sleep(1 + rand() % 3);
+
+        // ── ENTRER en lecture
+
+        // ② Prendre le mutex pour modifier nb_lecteurs
+        pthread_mutex_lock(&mutex_lecteurs);
+        nb_lecteurs++;
+
+        // ③ Si c'est le PREMIER lecteur → bloquer les rédacteurs
+        if (nb_lecteurs == 1) {
+            pthread_mutex_lock(&mutex_bdd);
+            // "Je suis le premier lecteur,
+            //  je ferme la porte aux rédacteurs"
+        }
+
+        pthread_mutex_unlock(&mutex_lecteurs);
+
+        // ── LIRE la BDD ─
+
+        // ④ Lire un octet à un emplacement aléatoire
+        int index = rand() % TAILLE_BDD;
+        unsigned char valeur = bdd[index];
+
+        // ⑤ Mettre à jour les stats
+        pthread_mutex_lock(&mutex_stats);
+        nb_lectures++;
+        pthread_mutex_unlock(&mutex_stats);
+
+        printf("Lecteur  %2d : lit    bdd[%2d] = %3d  "
+               "(%d lecteurs actifs)\n",
+               id, index, valeur, nb_lecteurs);
+
+        // ── SORTIR de lecture
+
+        // ⑥ Décrémenter le compteur de lecteurs
+        pthread_mutex_lock(&mutex_lecteurs);
+        nb_lecteurs--;
+
+        // ⑦ Si c'est le DERNIER lecteur → libérer les rédacteurs
+        if (nb_lecteurs == 0) {
+            pthread_mutex_unlock(&mutex_bdd);
+            // "Je suis le dernier lecteur,
+            //  j'ouvre la porte aux rédacteurs"
+        }
+
+        pthread_mutex_unlock(&mutex_lecteurs);
+    }
+
+    return NULL;
+}
+
+void *redacteur(void *arg) {
+    Args *a  = (Args *)arg;
+    int   id = a->id;
+
+    srand(time(NULL) + id + 100);
+
+    while (1) {
+
+        // ① Attendre entre 1 et 10 secondes
+        sleep(1 + rand() % 10);
+
+        // ── ENTRER en écriture ──────
+
+        // ② Attendre qu'il n'y ait AUCUN lecteur
+        //    → bloqué tant que nb_lecteurs > 0
+        //    (le 1er lecteur a verrouillé mutex_bdd)
+        pthread_mutex_lock(&mutex_bdd);
+
+        // ── ÉCRIRE dans la BDD ────
+
+        // ③ Modifier un octet à un emplacement aléatoire
+        int index           = rand() % TAILLE_BDD;
+        unsigned char avant = bdd[index];
+        bdd[index]          = rand() % 256;
+
+        // ④ Mettre à jour les stats
+        pthread_mutex_lock(&mutex_stats);
+        nb_ecritures++;
+        pthread_mutex_unlock(&mutex_stats);
+
+        printf("Rédacteur %2d : écrit  bdd[%2d] : "
+               "%3d → %3d\n",
+               id, index, avant, bdd[index]);
+        afficher_bdd();
+
+
+        // ⑤ Libérer la BDD pour les autres
+        pthread_mutex_unlock(&mutex_bdd);
+    }
+
+    return NULL;
+}
+
+void *statistiques(void *arg) {
+    while (1) {
+        sleep(15);
+
+        pthread_mutex_lock(&mutex_stats);
+        printf("\nStats : %d lectures, %d écritures\n",
+               nb_lectures, nb_ecritures);
+        printf("════════════════════════════════\n\n");
+        pthread_mutex_unlock(&mutex_stats);
+    }
+    return NULL;
+}
+
+
+int main() {
+    int N, M;
+
+    printf("Nombre de lecteurs   (N) : ");
+    scanf("%d", &N);
+    printf("Nombre de rédacteurs (M) : ");
+    scanf("%d", &M);
+
+    if (N <= 0 || M <= 0) {
+        fprintf(stderr, "N et M doivent être > 0\n");
+        return 1;
+    }
+
+    // ② Initialiser la BDD à 0
+    memset(bdd, 0, sizeof(bdd));
+
+    // ③ Allouer les tableaux
+    pthread_t *t_lect = malloc(N * sizeof(pthread_t));
+    pthread_t *t_red  = malloc(M * sizeof(pthread_t));
+    Args      *args_l = malloc(N * sizeof(Args));
+    Args      *args_r = malloc(M * sizeof(Args));
+
+    printf("\n=== Démarrage : %d lecteurs, "
+           "%d rédacteurs, BDD %d octets ===\n\n",
+           N, M, TAILLE_BDD);
+
+    afficher_bdd();
+    printf("\n");
+
+    // ④ Créer les N threads lecteurs
+    for (int i = 0; i < N; i++) {
+        args_l[i].id = i + 1;
+        pthread_create(&t_lect[i], NULL, lecteur, &args_l[i]);
+    }
+
+    // ⑤ Créer les M threads rédacteurs
+    for (int i = 0; i < M; i++) {
+        args_r[i].id = i + 1;
+        pthread_create(&t_red[i], NULL, redacteur, &args_r[i]);
+    }
+
+    // ⑥ Créer le thread de statistiques
+    pthread_t t_stats;
+    pthread_create(&t_stats, NULL, statistiques, NULL);
+
+    for (int i = 0; i < N; i++) pthread_join(t_lect[i], NULL);
+    for (int i = 0; i < M; i++) pthread_join(t_red[i],  NULL);
+
+    // ⑧ Libérer les ressources
+    pthread_mutex_destroy(&mutex_lecteurs);
+    pthread_mutex_destroy(&mutex_bdd);
+    pthread_mutex_destroy(&mutex_stats);
+    free(t_lect);
+    free(t_red);
+    free(args_l);
+    free(args_r);
+
+    return 0;
+}
 
 
 //====6.1============================

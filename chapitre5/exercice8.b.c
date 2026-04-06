@@ -11,7 +11,7 @@ int N;
 int compteur = 0;       
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// barriere : bloque les threads jusqu'à ce que tous soient là
+//  bloque les threads jusqu'à ce que tous soient là
 sem_t barriere;
 
 // Appelée par chaque thread quand il arrive au rendez-vous
