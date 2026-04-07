@@ -2337,11 +2337,315 @@ int main() {
 
 
 //=====8.1=================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <signal.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#define BUFFER_SIZE 255
+#define MAX_PRODUITS 100
+
+typedef struct {
+    char nom[32];
+    float prix;
+} Produit;
+
+Produit catalogue[MAX_PRODUITS] = {
+    {"pomme", 0.50},
+    {"banane", 0.30},
+    {"orange", 0.75}
+};
+int nb_produits = 3;
+
+Produit* recherche_produit(char *nom) {
+    for (int i = 0; i < nb_produits; i++) {
+        if (strcmp(catalogue[i].nom, nom) == 0) {
+            return &catalogue[i];
+        }
+    }
+    return NULL;
+}
+
+/* f) Crée un fichier de commande avec nom unique basé sur la date+heure+pid */
+FILE* ouvrir_fichier_commande() {
+    char nom_fichier[64];
+    time_t t = time(NULL);
+    struct tm *tm_info = localtime(&t);
+    strftime(nom_fichier, sizeof(nom_fichier),
+             "commande_%Y%m%d_%H%M%S_", tm_info);
+    char pid_str[16];
+    sprintf(pid_str, "%d.txt", getpid());
+    strcat(nom_fichier, pid_str);
+    return fopen(nom_fichier, "w");
+}
+
+int cree_socket_tcp_ip() {
+    int sock, opt = 1;
+    struct sockaddr_in adresse;
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) return -1;
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    memset(&adresse, 0, sizeof(struct sockaddr_in));
+    adresse.sin_family = AF_INET;
+    adresse.sin_port = htons(33140);
+    adresse.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (bind(sock, (struct sockaddr*) &adresse, sizeof(struct sockaddr_in)) < 0) return -1;
+    return sock;
+}
+
+void traite_connection(int sock) {
+    char bufferR[BUFFER_SIZE], bufferW[BUFFER_SIZE];
+    int nb, quantite;
+    float total_commande = 0.0;
+
+    
+    FILE *fichier = ouvrir_fichier_commande();
+    if (fichier == NULL) {
+        write(sock, "Erreur serveur : impossible de créer le fichier.\n", 50);
+        return;
+    
+    time_t t = time(NULL);
+    fprintf(fichier, "=== COMMANDE DU %s", ctime(&t));
+    fprintf(fichier, "%-20s %-10s %-10s\n", "Produit", "Quantite", "Sous-total");
+    fprintf(fichier, "--------------------------------------------\n");
+
+    write(sock, "=== Nouvelle commande ===\n", 25);
+    write(sock, "(Tapez 'fin' comme nom de produit pour terminer)\n\n", 50);
+
+    /* multi-produit*/
+    while (1) 
+    {
+        write(sock, "Nom du produit : ", 17);
+        nb = read(sock, bufferR, BUFFER_SIZE);
+        if (nb <= 0) break;
+        if (nb >= 2) bufferR[nb-2] = '\0';
+        else         bufferR[0]    = '\0';
+
+        if (strcmp(bufferR, "fin") == 0) break;
+
+        Produit *p = recherche_produit(bufferR);
+        if (p == NULL) {
+            write(sock, "Produit inconnu, essayez un autre.\n", 35);
+            continue;  
+        }
+
+        write(sock, "Quantite : ", 11);
+        nb = read(sock, bufferR, BUFFER_SIZE);
+        if (nb <= 0) break;
+        if (nb >= 2) bufferR[nb-2] = '\0';
+        else         bufferR[0]    = '\0';
+        quantite = atoi(bufferR);
+
+        if (quantite <= 0) {
+            write(sock, "Quantite invalide.\n", 19);
+            continue;
+        }
+
+        float sous_total = p->prix * quantite;
+        total_commande += sous_total;
+
+        sprintf(bufferW, "  -> %d x %s = %.2f euros\n", quantite, p->nom, sous_total);
+        write(sock, bufferW, strlen(bufferW));
+
+        fprintf(fichier, "%-20s %-10d %.2f euros\n", p->nom, quantite, sous_total);
+    }
+
+    sprintf(bufferW, "\nTOTAL COMMANDE : %.2f euros\n", total_commande);
+    write(sock, bufferW, strlen(bufferW));
+
+    fprintf(fichier, "TOTAL : %.2f euros\n", total_commande);
+    fclose(fichier);
+}
+
+int main(void) 
+{
+    int sock_contact, sock_connectee;
+    struct sockaddr_in adresse;
+    socklen_t longueur = sizeof(struct sockaddr_in);
+
+    signal(SIGCHLD, SIG_IGN);  
+
+    sock_contact = cree_socket_tcp_ip();
+    listen(sock_contact, 5);
+
+    while (1) {
+        sock_connectee = accept(sock_contact, (struct sockaddr*)&adresse, &longueur);
+
+        if (fork() == 0) {
+            close(sock_contact);
+            traite_connection(sock_connectee);
+            close(sock_connectee);
+            exit(0);
+        }
+        close(sock_connectee);
+    }
+    return 0;
+}
+
+
 //=====8.2=================
-//=====8.3=================
-//=====8.4=================
-//=====8.5=================
-//=====8.6=================
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h> 
+
+#define PORT       33140
+#define BUFFER_SIZE 256
+
+
+int verifier_autorisation(const char *ip_client, char *nom_out, size_t nom_size) {
+    FILE *f = fopen("add_autoris.txt", "r");
+    if (f == NULL) {
+        fprintf(stderr, "Erreur : impossible d'ouvrir add_autoris.txt\n");
+        return 0;
+    }
+
+    char ligne[BUFFER_SIZE];
+    int autorise = 0;
+
+    while (fgets(ligne, sizeof(ligne), f)) {
+        ligne[strcspn(ligne, "\n\r")] = '\0';   
+        if (strlen(ligne) == 0) continue;       
+
+        char ip_ligne[64]  = "";
+        char nom_ligne[128] = "";
+
+       
+        sscanf(ligne, "%63s %127s", ip_ligne, nom_ligne);
+
+        if (strcmp(ip_ligne, ip_client) == 0) {
+            autorise = 1;
+            /* b) Copier le nom si présent */
+            if (strlen(nom_ligne) > 0)
+                strncpy(nom_out, nom_ligne, nom_size - 1);
+            else
+                strncpy(nom_out, "inconnu", nom_size - 1);
+            nom_out[nom_size - 1] = '\0';
+            break;
+        }
+    }
+
+    fclose(f);
+    return autorise;
+}
+
+
+void traite_connection(int sock, const char *nom, const char *ip) {
+    char buffer[BUFFER_SIZE];
+    char msg[BUFFER_SIZE];
+    int nb;
+
+    
+    snprintf(msg, sizeof(msg), "Bienvenue %s ! (IP : %s)\n", nom, ip);
+    write(sock, msg, strlen(msg));
+
+    write(sock, "Que puis-je faire pour vous ? (tapez 'fin' pour quitter)\n", 57);
+
+    while (1) {
+        nb = read(sock, buffer, sizeof(buffer) - 1);
+        if (nb <= 0) break;                         
+        buffer[nb] = '\0';
+        buffer[strcspn(buffer, "\n\r")] = '\0';
+
+        if (strcmp(buffer, "fin") == 0) {
+            write(sock, "Au revoir !\n", 12);
+            break;
+        }
+
+        snprintf(msg, sizeof(msg), "Reçu : %s\n", buffer);
+        write(sock, msg, strlen(msg));
+    }
+}
+
+int cree_socket_serveur() {
+    int sock, opt = 1;
+    struct sockaddr_in adresse;
+
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket");
+        return -1;
+    }
+
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    memset(&adresse, 0, sizeof(adresse));
+    adresse.sin_family      = AF_INET;
+    adresse.sin_port        = htons(PORT);
+    adresse.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(sock, (struct sockaddr*)&adresse, sizeof(adresse)) < 0) {
+        perror("bind");
+        close(sock);
+        return -1;
+    }
+
+    return sock;
+}
+
+
+int main(void) {
+    int sock_contact, sock_client;
+    struct sockaddr_in adresse_client;
+    socklen_t longueur = sizeof(adresse_client);
+
+    signal(SIGCHLD, SIG_IGN);   /* Évite les processus zombies */
+
+    sock_contact = cree_socket_serveur();
+    if (sock_contact < 0) exit(1);
+
+    if (listen(sock_contact, 5) < 0) {
+        perror("listen");
+        exit(1);
+    }
+
+    while (1) {
+        sock_client = accept(sock_contact,
+                             (struct sockaddr*)&adresse_client,
+                             &longueur);
+        if (sock_client < 0) {
+            perror("accept");
+            continue;
+        }
+
+        char ip_client[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &adresse_client.sin_addr,
+                  ip_client, sizeof(ip_client));
+        printf("Tentative de connexion depuis : %s\n", ip_client);
+
+        if (fork() == 0) {
+            close(sock_contact);
+
+            char nom_client[128] = "";
+
+            if (!verifier_autorisation(ip_client, nom_client, sizeof(nom_client))) {
+                printf("Accès refusé : %s\n", ip_client);
+                write(sock_client, "Accès refusé.\n", 14);
+                close(sock_client);
+                exit(0);
+            }
+
+            printf("Accès autorisé : %s (%s)\n", nom_client, ip_client);
+
+            traite_connection(sock_client, nom_client, ip_client);
+
+            close(sock_client);
+            exit(0);
+        }
+
+        close(sock_client);
+    }
+
+    return 0;
+
 
 
 
